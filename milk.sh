@@ -3,6 +3,7 @@
 
 
 USER_LIST=()
+VERBOSE=false
 
 
 #####################################################
@@ -30,11 +31,22 @@ DESCRIPTION
         -a
                prints days til expiration for all users (must have sudo rights)
 
-        -r
-               check on a remote host
+        -v
+               check ALL users
 
 AUTHOR
         Another handy tool by James Stoup
+
+EXAMPLES
+        # To see how many days til the password of the current account expires
+        ./milk.sh -e
+
+        # To see how many days till all the real users's passwords expire
+        sudo ./milk.sh -a
+
+        # To see all accounts
+        sudo ./milk.sh -a -v
+
 EOF
     
     exit 1
@@ -67,31 +79,27 @@ checkCurUser() {
 #####################################################
 checkAllUsers() {
     rootCheck
-    
-    # ALL users
-    #USER_LIST_STR=`getent passwd | cut -d: -f1 | sort`
-    
-    # All "real" users 
-    #USER_LIST_STR=`eval getent passwd {$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)} | cut -d: -f1 | sort`
 
-    # All human users
-    USER_LIST_STR=`getent passwd | grep home | cut -d: -f1 | sort`
+    if [[ "$VERBOSE" = "true" ]] ; then
+        # ALL users
+        USER_LIST_STR=`getent passwd | cut -d: -f1 | sort`
+    
+        # All "real" users 
+        #USER_LIST_STR=`eval getent passwd {$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)} | cut -d: -f1 | sort`
 
+    else
+        echo "NORMAL"
+        # All human users
+        USER_LIST_STR=`getent passwd | grep home | cut -d: -f1 | sort`
+
+    fi
+    
     USER_LIST=($USER_LIST_STR)
 
     printDaysLeft
 }
 
 
-
-#####################################################
-# Check remote users
-#####################################################
-checkRemoteUsers() {
-    CUR_USER=`whoami`
-    USER_LIST=($CUR_USER)
-    printDaysLeft
-}
 
 
 #####################################################
@@ -127,30 +135,51 @@ printDaysLeft() {
 #####################################################
 # If they just ran it blind, print the help
 #####################################################
-# if [[ -z "$1" ]]; then
-#     usage
-# fi
+if [[ -z "$1" ]]; then
+    usage
+fi
 
 
 #####################################################
 # Main()
 #####################################################
-while getopts ":hear:" opt; do
+while getopts ":heav" opt; do
     case $opt in
 	h)
 	    usage
 	    ;;
     e)
-        checkCurUser
+        CUR_USER=true
         ;;
 	a)
-	    checkAllUsers
+        ALL_USERS=true
 	    ;;
-	r)
-	    checkRemoteUsers
-	    ;;
+    v)
+        VERBOSE=true
+        ;;
 	*)
 	    usage
 	    ;;
     esac
 done
+
+if [[ "$CUR_USER" = true ]] && [[ "$ALL_USERS" = true ]] ; then
+    echo ""
+    echo "Please use either the -a or -e flag, but not both at the same time!"
+    echo ""
+    usage
+    exit 1
+fi
+
+
+# run for one user
+if [[ "$CUR_USER" = true ]] ; then
+    checkCurUser
+fi
+
+# run for all users
+if [[ "$ALL_USERS" = true ]] ; then
+	checkAllUsers
+fi
+
+
