@@ -4,6 +4,8 @@
 
 USER_LIST=()
 VERBOSE=false
+NEVER=false
+SUPPRESS=false
 
 
 #####################################################
@@ -31,8 +33,14 @@ DESCRIPTION
         -a
                prints days til expiration for all users (must have sudo rights)
 
+        -n
+               never print never again (don't show users whose accounts can't expire)
+
         -v
                check ALL users
+
+        -s
+               suppress output (don't print headers)
 
 AUTHOR
         Another handy tool by James Stoup
@@ -51,6 +59,7 @@ EOF
     
     exit 1
 }
+
 
 #####################################################
 # Bail if we aren't root
@@ -73,7 +82,6 @@ checkCurUser() {
 }
 
 
-
 #####################################################
 # Check all users (requires root access)
 #####################################################
@@ -84,11 +92,7 @@ checkAllUsers() {
         # ALL users
         USER_LIST_STR=`getent passwd | cut -d: -f1 | sort`
     
-        # All "real" users 
-        #USER_LIST_STR=`eval getent passwd {$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)} | cut -d: -f1 | sort`
-
     else
-        echo "NORMAL"
         # All human users
         USER_LIST_STR=`getent passwd | grep home | cut -d: -f1 | sort`
 
@@ -100,22 +104,25 @@ checkAllUsers() {
 }
 
 
-
-
 #####################################################
 # Print the days left of the user(s) passed in
 #####################################################
 printDaysLeft() {
-    printf "==========================================\n"
-    printf "  %-25s %s\n" "USER" "DAYS LEFT"
-    printf "==========================================\n"
 
+    if [[ "$SUPPRESS" = "false" ]] ; then
+        printf "==========================================\n"
+        printf "  %-25s %s\n" "USER" "DAYS LEFT"
+        printf "==========================================\n"
+    fi
+    
     for CUR_USER in "${USER_LIST[@]}"
     do
         AGE=`chage -l $CUR_USER | grep "Password expires" | cut -d ":" -f2 |  sed 's/^ *//g'`
 
         if [[ $AGE == "never" ]] ; then
-            printf "  %-25s %s\n" $CUR_USER "Never"
+            if [[ "$NEVER" = "false" ]]; then
+                printf "  %-25s %s\n" $CUR_USER "Never"
+            fi
         else
             DEADLINE=`date -d "$AGE" +%s`
             DATE_NOW=`date +%s`
@@ -131,7 +138,6 @@ printDaysLeft() {
 }
 
 
-
 #####################################################
 # If they just ran it blind, print the help
 #####################################################
@@ -143,7 +149,7 @@ fi
 #####################################################
 # Main()
 #####################################################
-while getopts ":heav" opt; do
+while getopts ":heavns" opt; do
     case $opt in
 	h)
 	    usage
@@ -156,6 +162,12 @@ while getopts ":heav" opt; do
 	    ;;
     v)
         VERBOSE=true
+        ;;
+    n)
+        NEVER=true
+        ;;
+    s)
+        SUPPRESS=true
         ;;
 	*)
 	    usage
