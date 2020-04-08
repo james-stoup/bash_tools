@@ -6,7 +6,7 @@ USER_LIST=()
 VERBOSE=false
 NEVER=false
 SUPPRESS=false
-
+THRESHOLD=9999
 
 #####################################################
 # Print usage
@@ -134,12 +134,12 @@ printDaysLeft() {
                 printf "  %-25s %s\n" $CUR_USER "Never"
             fi
         else
-            if (( $AGE <= THRESHOLD )) ; then
-                DEADLINE=`date -d "$AGE" +%s`
-                DATE_NOW=`date +%s`
-                DAYS_LEFT=$(( ($DEADLINE - $DATE_NOW)/(3600*24) ))
 
-                # put in flag to only print positive values
+            DEADLINE=`date -d "$AGE" +%s`
+            DATE_NOW=`date +%s`
+            DAYS_LEFT=$(( ($DEADLINE - $DATE_NOW)/(3600*24) ))
+
+	    if (( $DAYS_LEFT <= $THRESHOLD )) ; then
                 if (( $DAYS_LEFT >= 0 )) ; then
                     printf "  %-25s %s\n" $CUR_USER $DAYS_LEFT
                 fi
