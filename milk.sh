@@ -42,6 +42,9 @@ DESCRIPTION
         -s
                suppress output (don't print headers)
 
+        -t
+               threshold of days before reporting (requires a number as arg)
+
 AUTHOR
         Another handy tool by James Stoup
 
@@ -53,7 +56,14 @@ EXAMPLES
         sudo ./milk.sh -a
 
         # To see all accounts
-        sudo ./milk.sh -a -v
+        sudo ./milk.sh -av
+
+        # Show only real accounts that can't expire
+        sudo ./milk.sh -an
+
+        # Show all accounts, but only those that expire in 14 days or less
+        sudo ./milk.sh -av -t 14
+
 
 EOF
     
@@ -124,13 +134,15 @@ printDaysLeft() {
                 printf "  %-25s %s\n" $CUR_USER "Never"
             fi
         else
-            DEADLINE=`date -d "$AGE" +%s`
-            DATE_NOW=`date +%s`
-            DAYS_LEFT=$(( ($DEADLINE - $DATE_NOW)/(3600*24) ))
+            if (( $AGE <= THRESHOLD )) ; then
+                DEADLINE=`date -d "$AGE" +%s`
+                DATE_NOW=`date +%s`
+                DAYS_LEFT=$(( ($DEADLINE - $DATE_NOW)/(3600*24) ))
 
-            # put in flag to only print positive values
-            if (( $DAYS_LEFT >= 0 )) ; then
-                printf "  %-25s %s\n" $CUR_USER $DAYS_LEFT
+                # put in flag to only print positive values
+                if (( $DAYS_LEFT >= 0 )) ; then
+                    printf "  %-25s %s\n" $CUR_USER $DAYS_LEFT
+                fi
             fi
         fi
         
@@ -149,7 +161,7 @@ fi
 #####################################################
 # Main()
 #####################################################
-while getopts ":heavns" opt; do
+while getopts ":heavnst:" opt; do
     case $opt in
 	h)
 	    usage
@@ -168,6 +180,9 @@ while getopts ":heavns" opt; do
         ;;
     s)
         SUPPRESS=true
+        ;;
+    t)
+        THRESHOLD=$OPTARG
         ;;
 	*)
 	    usage
