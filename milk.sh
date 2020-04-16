@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-
+VERSION=1.0.1
 USER_LIST=()
 VERBOSE=false
 NEVER=false
@@ -64,8 +64,10 @@ EXAMPLES
         # Show all accounts, but only those that expire in 14 days or less
         sudo ./milk.sh -av -t 14
 
-
 EOF
+
+    echo "VERSION : $VERSION"
+    echo ""
     
     exit 1
 }
